@@ -2,11 +2,13 @@ apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: skydive-service-account
+  namespace: ovn-kubernetes
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
   name: skydive-cluster-role
+  namespace: ovn-kubernetes
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
@@ -14,12 +16,13 @@ roleRef:
 subjects:
   - kind: ServiceAccount
     name: skydive-service-account
-    namespace: default
+    namespace: ovn-kubernetes
 ---
 apiVersion: v1
 kind: Service
 metadata:
   name: skydive-analyzer
+  namespace: ovn-kubernetes
   labels:
     app: skydive-analyzer
 spec:
@@ -46,10 +49,13 @@ metadata:
   labels:
     app: skydive-analyzer
   name: skydive-analyzer-config
+  namespace: ovn-kubernetes
 data:
   SKYDIVE_ANALYZER_FLOW_BACKEND: elasticsearch
   SKYDIVE_ANALYZER_TOPOLOGY_BACKEND: elasticsearch
   SKYDIVE_ANALYZER_TOPOLOGY_PROBES: k8s
+  SKYDIVE_OVS_OFLOW_ENABLE: "true"
+  SKYDIVE_ANALYZER_TOPOLOGY_OVN_ADDRESS: "tcp:ovnkube-db.ovn-kubernetes.svc.cluster.local:6641"
 ---
 apiVersion: v1
 kind: ConfigMap
@@ -57,14 +63,17 @@ metadata:
   labels:
     app: skydive-agent
   name: skydive-agent-config
+  namespace: ovn-kubernetes
 data:
-  SKYDIVE_AGENT_TOPOLOGY_PROBES: runc docker
+  SKYDIVE_AGENT_TOPOLOGY_PROBES: runc ovsdb
   SKYDIVE_AGENT_LISTEN: 127.0.0.1:8081
+  SKYDIVE_OVS_OFLOW_ENABLE: "true"
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: skydive-analyzer
+  namespace: ovn-kubernetes
 spec:
   replicas: 1
   selector:
@@ -80,7 +89,8 @@ spec:
       serviceAccountName: skydive-service-account
       containers:
       - name: skydive-analyzer
-        image: skydive/skydive
+        image: amorenoz/skydive
+        imagePullPolicy: Always
         args:
         - analyzer
         ports:
@@ -122,6 +132,7 @@ apiVersion: apps/v1
 kind: DaemonSet
 metadata:
   name: skydive-agent
+  namespace: ovn-kubernetes
 spec:
   selector:
     matchLabels:
@@ -137,7 +148,8 @@ spec:
       hostPID: true
       containers:
       - name: skydive-agent
-        image: skydive/skydive
+        image: amorenoz/skydive
+        imagePullPolicy: Always
         args:
         - agent
         - --listen=0.0.0.0:8081
@@ -171,8 +183,8 @@ spec:
           mountPath: /var/run/docker.sock
         - name: run
           mountPath: /host/run
-        - name: ovsdb
-          mountPath: /var/run/openvswitch/db.sock
+        - name: ovs
+          mountPath: /var/run/openvswitch
         - name: runc
           mountPath: /var/run/runc
         - name: runc-ctrs
@@ -190,9 +202,9 @@ spec:
       - name: run
         hostPath:
           path: /var/run/netns
-      - name: ovsdb
+      - name: ovs
         hostPath:
-          path: /var/run/openvswitch/db.sock
+          path: /run/openvswitch/
       - name: runc
         hostPath:
           path: /var/run/runc
