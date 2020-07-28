@@ -541,7 +541,7 @@ func NewProbe(g *graph.Graph, address string) (probe.Handler, error) {
 	p := &Probe{
 		graph:      g,
 		address:    address,
-		eventChan:  make(chan ovnEvent, 50),
+		eventChan:  make(chan ovnEvent, 500),
 		aclIndexer: graph.NewIndexer(g, nil, uuidHasher, false),
 		lsIndexer:  graph.NewIndexer(g, nil, uuidHasher, false),
 		lspIndexer: graph.NewIndexer(g, nil, uuidHasher, false),
