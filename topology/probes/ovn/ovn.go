@@ -24,6 +24,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
 	"sync"
 
 	"github.com/skydive-project/skydive/probe"
@@ -41,23 +42,26 @@ type ovnEvent func()
 // Probe describes an OVN probe
 type Probe struct {
 	graph.ListenerHandler
-	graph       *graph.Graph
-	address     string
-	ovndbapi    goovn.Client
-	switchPorts map[string]*goovn.LogicalSwitch
-	eventChan   chan ovnEvent
-	bundle      *probe.Bundle
-	aclIndexer  *graph.Indexer
-	ifaces      *graph.MetadataIndexer
-	lsIndexer   *graph.Indexer
-	lspIndexer  *graph.Indexer
-	lrIndexer   *graph.Indexer
-	lrpIndexer  *graph.Indexer
-	spLinker    *graph.ResourceLinker
-	srLinker    *graph.MetadataIndexerLinker
-	rpLinker    *graph.ResourceLinker
-	aclLinker   *graph.ResourceLinker
-	ifaceLinker *graph.MetadataIndexerLinker
+	graph         *graph.Graph
+	address       string
+	ovndbapi      goovn.Client
+	switchPorts   map[string]*goovn.LogicalSwitch
+	eventChan     chan ovnEvent
+	bundle        *probe.Bundle
+	aclIndexer    *graph.Indexer
+	ifaces        *graph.MetadataIndexer
+	pods          *graph.MetadataIndexer
+	lsIndexer     *graph.Indexer
+	lspIndexer    *graph.Indexer
+	lrIndexer     *graph.Indexer
+	lrpIndexer    *graph.Indexer
+	spLinker      *graph.ResourceLinker
+	srLinker      *graph.MetadataIndexerLinker
+	rpLinker      *graph.ResourceLinker
+	aclLinker     *graph.ResourceLinker
+	podLinker     *graph.ResourceLinker
+	ifaceLinker   *graph.MetadataIndexerLinker
+	lpNameIndexer *graph.MetadataIndexer
 }
 
 // Metadata describes the information of an OVN object
@@ -247,6 +251,53 @@ func (l *aclLinker) GetBALinks(aclNode *graph.Node) (edges []*graph.Edge) {
 				}
 			}
 		}
+	}
+	return edges
+}
+
+//// Approach 1. copy the switchport indexer
+type podLinker struct {
+	probe *Probe
+}
+
+// From a pord, return the switchPort
+func (l *podLinker) GetABLinks(podNode *graph.Node) (edges []*graph.Edge) {
+	logging.GetLogger().Debugf("PodLinker called with %v", podNode)
+	name, _ := podNode.GetFieldString("Name")
+	namespace, _ := podNode.GetFieldString("K8s.Namespace")
+	combined := fmt.Sprintf("%s_%s", namespace, name)
+	logging.GetLogger().Debugf("Looking for LsPort with name: %s", combined)
+	lsPortNode, err := l.probe.lpNameIndexer.GetNode(combined)
+	logging.GetLogger().Debugf("lsPortNode is %v, err is %v", lsPortNode, err)
+	if lsPortNode != nil {
+		link, err := topology.NewLink(l.probe.graph, podNode, lsPortNode, topology.Layer2Link, nil)
+		if err != nil {
+			logging.GetLogger().Error(link)
+		}
+		edges = append(edges, link)
+	}
+	return edges
+}
+
+// From a switchPort, return the pods
+func (l *podLinker) GetBALinks(lsPortNode *graph.Node) (edges []*graph.Edge) {
+	logging.GetLogger().Debugf("PodLinker called with %v", lsPortNode)
+	name, _ := lsPortNode.GetFieldString("Name")
+	split := strings.Split(name, "_")
+	if len(split) < 2 {
+		return edges
+	}
+
+	logging.GetLogger().Debugf("Looking for Pod with name %s", split[1])
+	podNode, err := l.probe.pods.GetNode(split[1])
+	// TODO: Add namespace to indexer
+	logging.GetLogger().Debugf("podNode is %v, err is %v", podNode, err)
+	if podNode != nil {
+		link, err := topology.NewLink(l.probe.graph, podNode, lsPortNode, topology.Layer2Link, nil)
+		if err != nil {
+			logging.GetLogger().Error(link)
+		}
+		edges = append(edges, link)
 	}
 	return edges
 }
@@ -597,11 +648,23 @@ func NewProbe(g *graph.Graph, address string) (probe.Handler, error) {
 	p.ifaces = graph.NewMetadataIndexer(g, g, nil, "ExtID.iface-id")
 	p.bundle.AddHandler("ifaces", p.ifaces)
 
-	lpIndexer2 := graph.NewMetadataIndexer(g, p.lspIndexer, graph.Metadata{"Type": "logical_port"}, "Name")
-	p.bundle.AddHandler("lpIndexer2", lpIndexer2)
+	p.lpNameIndexer = graph.NewMetadataIndexer(g, p.lspIndexer, graph.Metadata{"Type": "logical_port"}, "Name")
+	p.bundle.AddHandler("lpNameIndexer", p.lpNameIndexer)
 
-	p.ifaceLinker = graph.NewMetadataIndexerLinker(g, p.ifaces, lpIndexer2, graph.Metadata{"RelationType": "mapping"})
+	p.ifaceLinker = graph.NewMetadataIndexerLinker(g, p.ifaces, p.lpNameIndexer, graph.Metadata{"RelationType": "mapping"})
 	p.bundle.AddHandler("ifaceLinker", p.ifaceLinker)
+
+	p.pods = graph.NewMetadataIndexer(g, g, graph.Metadata{"Type": "pod"}, "Name")
+	p.bundle.AddHandler("pods", p.pods)
+
+	lp2PodIndexer := graph.NewMetadataIndexer(g, p.lspIndexer, graph.Metadata{"Type": "logical_port", "OVN.ExtID.pod": "true"}, "Name")
+	p.bundle.AddHandler("lp2PodIndexer", lp2PodIndexer)
+
+	p.podLinker = graph.NewResourceLinker(g,
+		[]graph.ListenerHandler{p.pods},
+		[]graph.ListenerHandler{lp2PodIndexer},
+		&podLinker{probe: p}, graph.Metadata{"Testing": "by-amorenoz"})
+	p.bundle.AddHandler("podLinker", p.podLinker)
 
 	// Handle linkers errors
 	p.aclLinker.AddEventListener(p)
@@ -609,6 +672,7 @@ func NewProbe(g *graph.Graph, address string) (probe.Handler, error) {
 	p.spLinker.AddEventListener(p)
 	p.srLinker.AddEventListener(p)
 	p.ifaceLinker.AddEventListener(p)
+	p.podLinker.AddEventListener(p)
 
 	return probes.NewProbeWrapper(p), nil
 }
