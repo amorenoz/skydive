@@ -368,7 +368,7 @@ func (p *Probe) OnLogicalSwitchDelete(ls *goovn.LogicalSwitch) {
 
 func (p *Probe) logicalPortMetadata(lp *goovn.LogicalSwitchPort) graph.Metadata {
 	return graph.Metadata{
-		"Type":    "logical_port",
+		"Type":    "logical_switch_port",
 		"Name":    lp.Name,
 		"UUID":    lp.UUID,
 		"Manager": "ovn",
@@ -388,7 +388,7 @@ func (p *Probe) logicalPortMetadata(lp *goovn.LogicalSwitchPort) graph.Metadata 
 
 func (p *Probe) logicalRouterPortMetadata(lp *goovn.LogicalRouterPort) graph.Metadata {
 	return graph.Metadata{
-		"Type":    "logical_port",
+		"Type":    "logical_router_port",
 		"Name":    lp.Name,
 		"UUID":    lp.UUID,
 		"Manager": "ovn",
@@ -631,7 +631,7 @@ func NewProbe(g *graph.Graph, address string) (probe.Handler, error) {
 	routerPortIndexer := graph.NewMetadataIndexer(g, p.lspIndexer, nil, "OVN.Options.router-port")
 	p.bundle.AddHandler("routerPortIndexer", routerPortIndexer)
 
-	lpIndexer := graph.NewMetadataIndexer(g, p.lrpIndexer, graph.Metadata{"Type": "logical_port"}, "Name")
+	lpIndexer := graph.NewMetadataIndexer(g, p.lrpIndexer, graph.Metadata{"Type": "logical_router_port"}, "Name")
 	p.bundle.AddHandler("lpIndexer", lpIndexer)
 
 	p.srLinker = graph.NewMetadataIndexerLinker(g, routerPortIndexer, lpIndexer, graph.Metadata{"RelationType": "layer2"})
@@ -643,7 +643,7 @@ func NewProbe(g *graph.Graph, address string) (probe.Handler, error) {
 	p.ifaces = graph.NewMetadataIndexer(g, g, nil, "ExtID.iface-id")
 	p.bundle.AddHandler("ifaces", p.ifaces)
 
-	p.lpNameIndexer = graph.NewMetadataIndexer(g, p.lspIndexer, graph.Metadata{"Type": "logical_port"}, "Name")
+	p.lpNameIndexer = graph.NewMetadataIndexer(g, p.lspIndexer, graph.Metadata{"Type": "logical_switch_port"}, "Name")
 	p.bundle.AddHandler("lpNameIndexer", p.lpNameIndexer)
 
 	p.ifaceLinker = graph.NewMetadataIndexerLinker(g, p.ifaces, p.lpNameIndexer, graph.Metadata{"RelationType": "mapping"})
@@ -652,7 +652,7 @@ func NewProbe(g *graph.Graph, address string) (probe.Handler, error) {
 	p.pods = graph.NewMetadataIndexer(g, g, graph.Metadata{"Type": "pod"}, "Name", "K8s.Namespace")
 	p.bundle.AddHandler("pods", p.pods)
 
-	lp2PodIndexer := graph.NewMetadataIndexer(g, p.lspIndexer, graph.Metadata{"Type": "logical_port", "OVN.ExtID.pod": "true"}, "Name")
+	lp2PodIndexer := graph.NewMetadataIndexer(g, p.lspIndexer, graph.Metadata{"Type": "logical_switch_port", "OVN.ExtID.pod": "true"}, "Name")
 	p.bundle.AddHandler("lp2PodIndexer", lp2PodIndexer)
 
 	p.podLinker = graph.NewResourceLinker(g,
