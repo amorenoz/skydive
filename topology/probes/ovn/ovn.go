@@ -43,8 +43,10 @@ type ovnEvent func()
 type Probe struct {
 	graph.ListenerHandler
 	graph         *graph.Graph
-	address       string
+	nbAddress     string
+	sbAddress     string
 	ovnNBapi      goovn.Client
+	ovnSBapi      goovn.Client
 	switchPorts   map[string]*goovn.LogicalSwitch
 	eventChan     chan ovnEvent
 	bundle        *probe.Bundle
@@ -556,22 +558,39 @@ func (p *Probe) Do(ctx context.Context, wg *sync.WaitGroup) error {
 				if p.ovnNBapi != nil {
 					p.ovnNBapi.Close()
 				}
+				if p.ovnSBapi != nil {
+					p.ovnSBapi.Close()
+				}
 				return
 			}
 		}
 	}()
 
-	logging.GetLogger().Debugf("Trying to get an OVN DB api")
+	logging.GetLogger().Debugf("Trying to get the OVN NB DB api")
 	cfg := &goovn.Config{
-		Addr:         p.address,
+		Addr:         p.nbAddress,
 		SignalCB:     p,
 		DisconnectCB: p.OnDisconnected,
+		Db:           "OVN_Northbound",
 	}
 	p.ovnNBapi, err = goovn.NewClient(cfg)
 	if err != nil {
 		return err
 	}
-	logging.GetLogger().Debugf("Successfully got an OVN DB api")
+	logging.GetLogger().Debugf("Successfully got the OVN NB DB api")
+
+	logging.GetLogger().Debugf("Trying to get the OVN SB DB api")
+	cfg = &goovn.Config{
+		Addr:         p.sbAddress,
+		SignalCB:     p,
+		DisconnectCB: p.OnDisconnected,
+		Db:           "OVN_Southbound",
+	}
+	p.ovnSBapi, err = goovn.NewClient(cfg)
+	if err != nil {
+		return err
+	}
+	logging.GetLogger().Debugf("Successfully got the OVN SB DB api")
 
 	p.graph.RLock()
 	p.ifaces.Sync()
@@ -610,10 +629,11 @@ func (p *Probe) Do(ctx context.Context, wg *sync.WaitGroup) error {
 }
 
 // NewProbe creates a new graph OVS database probe
-func NewProbe(g *graph.Graph, address string) (probe.Handler, error) {
+func NewProbe(g *graph.Graph, nbAddress string, sbAddress string) (probe.Handler, error) {
 	p := &Probe{
 		graph:      g,
-		address:    address,
+		nbAddress:  nbAddress,
+		sbAddress:  sbAddress,
 		eventChan:  make(chan ovnEvent, 50),
 		aclIndexer: graph.NewIndexer(g, nil, uuidHasher, false),
 		lsIndexer:  graph.NewIndexer(g, nil, uuidHasher, false),
