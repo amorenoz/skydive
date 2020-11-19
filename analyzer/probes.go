@@ -115,7 +115,7 @@ func NewTopologyProbeBundleFromConfig(g *graph.Graph) (*probe.Bundle, error) {
 
 		switch t {
 		case "ovn":
-			addr := config.GetString("analyzer.topology.ovn.address")
+			addr := config.GetString("analyzer.topology.ovn.nb.address")
 			handler, err = ovn.NewProbe(g, addr)
 		case "k8s":
 			handler, err = k8s.NewK8sProbe(g)

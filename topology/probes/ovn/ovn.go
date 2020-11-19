@@ -44,7 +44,7 @@ type Probe struct {
 	graph.ListenerHandler
 	graph         *graph.Graph
 	address       string
-	ovndbapi      goovn.Client
+	ovnNBapi      goovn.Client
 	switchPorts   map[string]*goovn.LogicalSwitch
 	eventChan     chan ovnEvent
 	bundle        *probe.Bundle
@@ -133,7 +133,7 @@ type switchPortLinker struct {
 func (l *switchPortLinker) GetABLinks(lsNode *graph.Node) (edges []*graph.Edge) {
 	probe := l.probe
 	name, _ := lsNode.GetFieldString("Name")
-	ports, _ := l.probe.ovndbapi.LSPList(name)
+	ports, _ := l.probe.ovnNBapi.LSPList(name)
 	for _, lp := range ports {
 		if lpNode, _ := probe.lspIndexer.GetNode(lp.UUID); lpNode != nil {
 			link, err := topology.NewLink(probe.graph, lsNode, lpNode, topology.OwnershipLink, nil)
@@ -151,9 +151,9 @@ func (l *switchPortLinker) GetABLinks(lsNode *graph.Node) (edges []*graph.Edge) 
 func (l *switchPortLinker) GetBALinks(lpNode *graph.Node) (edges []*graph.Edge) {
 	probe := l.probe
 	uuid, _ := lpNode.GetFieldString("UUID")
-	switches, _ := l.probe.ovndbapi.LSList()
+	switches, _ := l.probe.ovnNBapi.LSList()
 	for _, ls := range switches {
-		ports, _ := l.probe.ovndbapi.LSPList(ls.Name)
+		ports, _ := l.probe.ovnNBapi.LSPList(ls.Name)
 		for _, lp := range ports {
 			if lp.UUID == uuid {
 				if lsNode, _ := probe.lsIndexer.GetNode(ls.UUID); lsNode != nil {
@@ -178,7 +178,7 @@ type routerPortLinker struct {
 func (l *routerPortLinker) GetABLinks(lrNode *graph.Node) (edges []*graph.Edge) {
 	probe := l.probe
 	name, _ := lrNode.GetFieldString("Name")
-	ports, _ := l.probe.ovndbapi.LRPList(name)
+	ports, _ := l.probe.ovnNBapi.LRPList(name)
 	for _, lp := range ports {
 		if lrpNode, _ := probe.lrpIndexer.GetNode(lp.UUID); lrpNode != nil {
 			link, err := topology.NewLink(probe.graph, lrNode, lrpNode, topology.OwnershipLink, nil)
@@ -196,9 +196,9 @@ func (l *routerPortLinker) GetABLinks(lrNode *graph.Node) (edges []*graph.Edge) 
 func (l *routerPortLinker) GetBALinks(lrpNode *graph.Node) (edges []*graph.Edge) {
 	probe := l.probe
 	uuid, _ := lrpNode.GetFieldString("UUID")
-	routers, _ := l.probe.ovndbapi.LRList()
+	routers, _ := l.probe.ovnNBapi.LRList()
 	for _, lr := range routers {
-		ports, _ := l.probe.ovndbapi.LRPList(lr.Name)
+		ports, _ := l.probe.ovnNBapi.LRPList(lr.Name)
 		for _, lp := range ports {
 			if lp.UUID == uuid {
 				if lrNode, _ := probe.lrIndexer.GetNode(lr.UUID); lrNode != nil {
@@ -222,7 +222,7 @@ type aclLinker struct {
 // GetABLinks returns all the links from a specified port group to its ACLs
 func (l *aclLinker) GetABLinks(lsNode *graph.Node) (edges []*graph.Edge) {
 	name, _ := lsNode.GetFieldString("Name")
-	acls, _ := l.probe.ovndbapi.ACLList(name)
+	acls, _ := l.probe.ovnNBapi.ACLList(name)
 	for _, acl := range acls {
 		if aclNode, _ := l.probe.aclIndexer.GetNode(acl.UUID); aclNode != nil {
 			if link, _ := topology.NewLink(l.probe.graph, lsNode, aclNode, topology.OwnershipLink, nil); link != nil {
@@ -236,9 +236,9 @@ func (l *aclLinker) GetABLinks(lsNode *graph.Node) (edges []*graph.Edge) {
 // GetBALinks returns all the links from a port group to the specified ACL
 func (l *aclLinker) GetBALinks(aclNode *graph.Node) (edges []*graph.Edge) {
 	uuid, _ := aclNode.GetFieldString("Name")
-	switches, _ := l.probe.ovndbapi.LSList()
+	switches, _ := l.probe.ovnNBapi.LSList()
 	for _, ls := range switches {
-		acls, _ := l.probe.ovndbapi.ACLList(ls.Name)
+		acls, _ := l.probe.ovnNBapi.ACLList(ls.Name)
 		for _, acl := range acls {
 			if acl.UUID == uuid {
 				if lsNode, _ := l.probe.lsIndexer.GetNode(ls.UUID); lsNode != nil {
@@ -553,8 +553,8 @@ func (p *Probe) Do(ctx context.Context, wg *sync.WaitGroup) error {
 				}
 				eventCallback()
 			case <-ctx.Done():
-				if p.ovndbapi != nil {
-					p.ovndbapi.Close()
+				if p.ovnNBapi != nil {
+					p.ovnNBapi.Close()
 				}
 				return
 			}
@@ -567,7 +567,7 @@ func (p *Probe) Do(ctx context.Context, wg *sync.WaitGroup) error {
 		SignalCB:     p,
 		DisconnectCB: p.OnDisconnected,
 	}
-	p.ovndbapi, err = goovn.NewClient(cfg)
+	p.ovnNBapi, err = goovn.NewClient(cfg)
 	if err != nil {
 		return err
 	}
@@ -580,27 +580,27 @@ func (p *Probe) Do(ctx context.Context, wg *sync.WaitGroup) error {
 	p.bundle.Start()
 
 	// Initial synchronization
-	switches, _ := p.ovndbapi.LSList()
+	switches, _ := p.ovnNBapi.LSList()
 	for _, ls := range switches {
 		p.OnLogicalSwitchCreate(ls)
 
-		ports, _ := p.ovndbapi.LSPList(ls.Name)
+		ports, _ := p.ovnNBapi.LSPList(ls.Name)
 		for _, lp := range ports {
 			p.OnLogicalPortCreate(lp)
 		}
 
-		acls, _ := p.ovndbapi.ACLList(ls.Name)
+		acls, _ := p.ovnNBapi.ACLList(ls.Name)
 		for _, acl := range acls {
 			p.OnACLCreate(acl)
 		}
 	}
 
-	routers, _ := p.ovndbapi.LRList()
+	routers, _ := p.ovnNBapi.LRList()
 
 	for _, lr := range routers {
 		p.OnLogicalRouterCreate(lr)
 
-		ports, _ := p.ovndbapi.LRPList(lr.Name)
+		ports, _ := p.ovnNBapi.LRPList(lr.Name)
 		for _, lp := range ports {
 			p.OnLogicalRouterPortCreate(lp)
 		}
