@@ -109,6 +109,7 @@ require (
 )
 
 replace (
+	github.com/ebay/go-ovn => github.com/amorenoz/go-ovn v0.1.1-0.20201111124657-2a0d4d618412
 	github.com/census-instrumentation/opencensus-proto v0.1.0-0.20181214143942-ba49f56771b8 => github.com/census-instrumentation/opencensus-proto v0.0.3-0.20181214143942-ba49f56771b8
 	github.com/coreos/bbolt => go.etcd.io/bbolt v1.3.5
 	github.com/digitalocean/go-libvirt => github.com/lebauce/go-libvirt v0.0.0-20190717144624-7799d804f7e4

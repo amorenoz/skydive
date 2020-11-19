@@ -470,6 +470,31 @@ func (p *Probe) OnQoSCreate(*goovn.QoS) {
 func (p *Probe) OnQoSDelete(*goovn.QoS) {
 }
 
+func (p *Probe) OnChassisCreate(ch *goovn.Chassis) {
+}
+func (p *Probe) OnChassisDelete(ch *goovn.Chassis) {
+}
+func (p *Probe) OnMeterCreate(ch *goovn.Meter) {
+}
+func (p *Probe) OnMeterDelete(ch *goovn.Meter) {
+}
+func (p *Probe) OnMeterBandCreate(ch *goovn.MeterBand) {
+}
+func (p *Probe) OnMeterBandDelete(ch *goovn.MeterBand) {
+}
+func (p *Probe) OnEncapCreate(ch *goovn.Encap) {
+}
+func (p *Probe) OnEncapDelete(ch *goovn.Encap) {
+}
+func (p *Probe) OnLogicalFlowCreate(lf *goovn.LogicalFlow) {
+}
+func (p *Probe) OnLogicalFlowDelete(lf *goovn.LogicalFlow) {
+}
+func (p *Probe) OnDataPathBindingCreate(dp *goovn.DataPathBinding) {
+}
+func (p *Probe) OnDataPathBindingDelete(dp *goovn.DataPathBinding) {
+}
+
 func (p *Probe) aclMetadata(acl *goovn.ACL) graph.Metadata {
 	return graph.Metadata{
 		"Type":    "acl",
