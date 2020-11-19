@@ -82,6 +82,118 @@ func (obj *ACLMetadata) GetField(key string) (interface{}, error) {
 	return nil, getter.ErrFieldNotFound
 }
 
+func (obj *DPBMetadata) GetFieldBool(key string) (bool, error) {
+	return false, getter.ErrFieldNotFound
+}
+
+func (obj *DPBMetadata) GetFieldInt64(key string) (int64, error) {
+	switch key {
+	case "TunnelKey":
+		return int64(obj.TunnelKey), nil
+	}
+	return 0, getter.ErrFieldNotFound
+}
+
+func (obj *DPBMetadata) GetFieldString(key string) (string, error) {
+	return "", getter.ErrFieldNotFound
+}
+
+func (obj *DPBMetadata) GetFieldKeys() []string {
+	return []string{
+		"TunnelKey",
+	}
+}
+
+func (obj *DPBMetadata) MatchBool(key string, predicate getter.BoolPredicate) bool {
+	return false
+}
+
+func (obj *DPBMetadata) MatchInt64(key string, predicate getter.Int64Predicate) bool {
+	if b, err := obj.GetFieldInt64(key); err == nil {
+		return predicate(b)
+	}
+	return false
+}
+
+func (obj *DPBMetadata) MatchString(key string, predicate getter.StringPredicate) bool {
+	return false
+}
+
+func (obj *DPBMetadata) GetField(key string) (interface{}, error) {
+	if i, err := obj.GetFieldInt64(key); err == nil {
+		return i, nil
+	}
+	return nil, getter.ErrFieldNotFound
+}
+
+func (obj *LFMetadata) GetFieldBool(key string) (bool, error) {
+	return false, getter.ErrFieldNotFound
+}
+
+func (obj *LFMetadata) GetFieldInt64(key string) (int64, error) {
+	switch key {
+	case "LFPriority":
+		return int64(obj.LFPriority), nil
+	case "Table":
+		return int64(obj.Table), nil
+	}
+	return 0, getter.ErrFieldNotFound
+}
+
+func (obj *LFMetadata) GetFieldString(key string) (string, error) {
+	switch key {
+	case "LFActions":
+		return string(obj.LFActions), nil
+	case "LFMatch":
+		return string(obj.LFMatch), nil
+	case "Pipeline":
+		return string(obj.Pipeline), nil
+	case "LogicalDataPath":
+		return string(obj.LogicalDataPath), nil
+	}
+	return "", getter.ErrFieldNotFound
+}
+
+func (obj *LFMetadata) GetFieldKeys() []string {
+	return []string{
+		"LFActions",
+		"LFMatch",
+		"Pipeline",
+		"LogicalDataPath",
+		"LFPriority",
+		"Table",
+	}
+}
+
+func (obj *LFMetadata) MatchBool(key string, predicate getter.BoolPredicate) bool {
+	return false
+}
+
+func (obj *LFMetadata) MatchInt64(key string, predicate getter.Int64Predicate) bool {
+	if b, err := obj.GetFieldInt64(key); err == nil {
+		return predicate(b)
+	}
+	return false
+}
+
+func (obj *LFMetadata) MatchString(key string, predicate getter.StringPredicate) bool {
+	if b, err := obj.GetFieldString(key); err == nil {
+		return predicate(b)
+	}
+	return false
+}
+
+func (obj *LFMetadata) GetField(key string) (interface{}, error) {
+	if s, err := obj.GetFieldString(key); err == nil {
+		return s, nil
+	}
+
+	if i, err := obj.GetFieldInt64(key); err == nil {
+		return i, nil
+	}
+	return nil, getter.ErrFieldNotFound
+}
+
 func (obj *LRPMetadata) GetFieldBool(key string) (bool, error) {
 	return false, getter.ErrFieldNotFound
 }
@@ -347,6 +459,12 @@ func (obj *Metadata) GetFieldInt64(key string) (int64, error) {
 	switch key {
 	case "Priority":
 		return int64(obj.Priority), nil
+	case "TunnelKey":
+		return int64(obj.TunnelKey), nil
+	case "LFPriority":
+		return int64(obj.LFPriority), nil
+	case "Table":
+		return int64(obj.Table), nil
 	}
 	return 0, getter.ErrFieldNotFound
 }
@@ -367,6 +485,14 @@ func (obj *Metadata) GetFieldString(key string) (string, error) {
 		return string(obj.Direction), nil
 	case "Match":
 		return string(obj.Match), nil
+	case "LFActions":
+		return string(obj.LFActions), nil
+	case "LFMatch":
+		return string(obj.LFMatch), nil
+	case "Pipeline":
+		return string(obj.Pipeline), nil
+	case "LogicalDataPath":
+		return string(obj.LogicalDataPath), nil
 	}
 	return "", getter.ErrFieldNotFound
 }
@@ -387,6 +513,13 @@ func (obj *Metadata) GetFieldKeys() []string {
 		"Log",
 		"Match",
 		"Priority",
+		"TunnelKey",
+		"LFActions",
+		"LFMatch",
+		"Pipeline",
+		"LogicalDataPath",
+		"LFPriority",
+		"Table",
 		"ExtID",
 		"Options",
 	}

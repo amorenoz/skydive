@@ -40,6 +40,20 @@ func easyjson36bd8e45DecodeGithubComSkydiveProjectSkydiveTopologyProbesOvn(in *j
 			(out.ExtID).UnmarshalEasyJSON(in)
 		case "Options":
 			(out.Options).UnmarshalEasyJSON(in)
+		case "LFActions":
+			out.LFActions = string(in.String())
+		case "LFMatch":
+			out.LFMatch = string(in.String())
+		case "Pipeline":
+			out.Pipeline = string(in.String())
+		case "LogicalDataPath":
+			out.LogicalDataPath = string(in.String())
+		case "LFPriority":
+			out.LFPriority = int(in.Int())
+		case "Table":
+			out.Table = int(in.Int())
+		case "TunnelKey":
+			out.TunnelKey = int(in.Int())
 		case "Action":
 			out.Action = string(in.String())
 		case "Direction":
@@ -182,64 +196,94 @@ func easyjson36bd8e45EncodeGithubComSkydiveProjectSkydiveTopologyProbesOvn(out *
 		}
 		(in.Options).MarshalEasyJSON(out)
 	}
-	if in.Action != "" {
-		const prefix string = ",\"Action\":"
+	if in.LFActions != "" {
+		const prefix string = ",\"LFActions\":"
 		if first {
 			first = false
 			out.RawString(prefix[1:])
 		} else {
 			out.RawString(prefix)
 		}
+		out.String(string(in.LFActions))
+	}
+	if in.LFMatch != "" {
+		const prefix string = ",\"LFMatch\":"
+		if first {
+			first = false
+			out.RawString(prefix[1:])
+		} else {
+			out.RawString(prefix)
+		}
+		out.String(string(in.LFMatch))
+	}
+	if in.Pipeline != "" {
+		const prefix string = ",\"Pipeline\":"
+		if first {
+			first = false
+			out.RawString(prefix[1:])
+		} else {
+			out.RawString(prefix)
+		}
+		out.String(string(in.Pipeline))
+	}
+	if in.LogicalDataPath != "" {
+		const prefix string = ",\"LogicalDataPath\":"
+		if first {
+			first = false
+			out.RawString(prefix[1:])
+		} else {
+			out.RawString(prefix)
+		}
+		out.String(string(in.LogicalDataPath))
+	}
+	{
+		const prefix string = ",\"LFPriority\":"
+		if first {
+			first = false
+			out.RawString(prefix[1:])
+		} else {
+			out.RawString(prefix)
+		}
+		out.Int(int(in.LFPriority))
+	}
+	{
+		const prefix string = ",\"Table\":"
+		out.RawString(prefix)
+		out.Int(int(in.Table))
+	}
+	if in.TunnelKey != 0 {
+		const prefix string = ",\"TunnelKey\":"
+		out.RawString(prefix)
+		out.Int(int(in.TunnelKey))
+	}
+	if in.Action != "" {
+		const prefix string = ",\"Action\":"
+		out.RawString(prefix)
 		out.String(string(in.Action))
 	}
 	if in.Direction != "" {
 		const prefix string = ",\"Direction\":"
-		if first {
-			first = false
-			out.RawString(prefix[1:])
-		} else {
-			out.RawString(prefix)
-		}
+		out.RawString(prefix)
 		out.String(string(in.Direction))
 	}
 	if in.Log {
 		const prefix string = ",\"Log\":"
-		if first {
-			first = false
-			out.RawString(prefix[1:])
-		} else {
-			out.RawString(prefix)
-		}
+		out.RawString(prefix)
 		out.Bool(bool(in.Log))
 	}
 	if in.Match != "" {
 		const prefix string = ",\"Match\":"
-		if first {
-			first = false
-			out.RawString(prefix[1:])
-		} else {
-			out.RawString(prefix)
-		}
+		out.RawString(prefix)
 		out.String(string(in.Match))
 	}
 	if in.Priority != 0 {
 		const prefix string = ",\"Priority\":"
-		if first {
-			first = false
-			out.RawString(prefix[1:])
-		} else {
-			out.RawString(prefix)
-		}
+		out.RawString(prefix)
 		out.Int64(int64(in.Priority))
 	}
 	if len(in.GatewayChassis) != 0 {
 		const prefix string = ",\"GatewayChassis\":"
-		if first {
-			first = false
-			out.RawString(prefix[1:])
-		} else {
-			out.RawString(prefix)
-		}
+		out.RawString(prefix)
 		{
 			out.RawByte('[')
 			for v5, v6 := range in.GatewayChassis {
@@ -253,22 +297,12 @@ func easyjson36bd8e45EncodeGithubComSkydiveProjectSkydiveTopologyProbesOvn(out *
 	}
 	if len(in.IPv6RAConfigs) != 0 {
 		const prefix string = ",\"IPv6RAConfigs\":"
-		if first {
-			first = false
-			out.RawString(prefix[1:])
-		} else {
-			out.RawString(prefix)
-		}
+		out.RawString(prefix)
 		(in.IPv6RAConfigs).MarshalEasyJSON(out)
 	}
 	if len(in.Networks) != 0 {
 		const prefix string = ",\"Networks\":"
-		if first {
-			first = false
-			out.RawString(prefix[1:])
-		} else {
-			out.RawString(prefix)
-		}
+		out.RawString(prefix)
 		{
 			out.RawByte('[')
 			for v7, v8 := range in.Networks {
@@ -282,22 +316,12 @@ func easyjson36bd8e45EncodeGithubComSkydiveProjectSkydiveTopologyProbesOvn(out *
 	}
 	if in.Peer != "" {
 		const prefix string = ",\"Peer\":"
-		if first {
-			first = false
-			out.RawString(prefix[1:])
-		} else {
-			out.RawString(prefix)
-		}
+		out.RawString(prefix)
 		out.String(string(in.Peer))
 	}
 	if len(in.Addresses) != 0 {
 		const prefix string = ",\"Addresses\":"
-		if first {
-			first = false
-			out.RawString(prefix[1:])
-		} else {
-			out.RawString(prefix)
-		}
+		out.RawString(prefix)
 		{
 			out.RawByte('[')
 			for v9, v10 := range in.Addresses {
@@ -311,12 +335,7 @@ func easyjson36bd8e45EncodeGithubComSkydiveProjectSkydiveTopologyProbesOvn(out *
 	}
 	if len(in.PortSecurity) != 0 {
 		const prefix string = ",\"PortSecurity\":"
-		if first {
-			first = false
-			out.RawString(prefix[1:])
-		} else {
-			out.RawString(prefix)
-		}
+		out.RawString(prefix)
 		{
 			out.RawByte('[')
 			for v11, v12 := range in.PortSecurity {
@@ -330,32 +349,17 @@ func easyjson36bd8e45EncodeGithubComSkydiveProjectSkydiveTopologyProbesOvn(out *
 	}
 	if in.DHCPv4Options != "" {
 		const prefix string = ",\"DHCPv4Options\":"
-		if first {
-			first = false
-			out.RawString(prefix[1:])
-		} else {
-			out.RawString(prefix)
-		}
+		out.RawString(prefix)
 		out.String(string(in.DHCPv4Options))
 	}
 	if in.DHCPv6Options != "" {
 		const prefix string = ",\"DHCPv6Options\":"
-		if first {
-			first = false
-			out.RawString(prefix[1:])
-		} else {
-			out.RawString(prefix)
-		}
+		out.RawString(prefix)
 		out.String(string(in.DHCPv6Options))
 	}
 	if in.Type != "" {
 		const prefix string = ",\"Type\":"
-		if first {
-			first = false
-			out.RawString(prefix[1:])
-		} else {
-			out.RawString(prefix)
-		}
+		out.RawString(prefix)
 		out.String(string(in.Type))
 	}
 	out.RawByte('}')
@@ -722,7 +726,196 @@ func (v *LRPMetadata) UnmarshalJSON(data []byte) error {
 func (v *LRPMetadata) UnmarshalEasyJSON(l *jlexer.Lexer) {
 	easyjson36bd8e45DecodeGithubComSkydiveProjectSkydiveTopologyProbesOvn2(l, v)
 }
-func easyjson36bd8e45DecodeGithubComSkydiveProjectSkydiveTopologyProbesOvn3(in *jlexer.Lexer, out *ACLMetadata) {
+func easyjson36bd8e45DecodeGithubComSkydiveProjectSkydiveTopologyProbesOvn3(in *jlexer.Lexer, out *LFMetadata) {
+	isTopLevel := in.IsStart()
+	if in.IsNull() {
+		if isTopLevel {
+			in.Consumed()
+		}
+		in.Skip()
+		return
+	}
+	in.Delim('{')
+	for !in.IsDelim('}') {
+		key := in.UnsafeFieldName(false)
+		in.WantColon()
+		if in.IsNull() {
+			in.Skip()
+			in.WantComma()
+			continue
+		}
+		switch key {
+		case "LFActions":
+			out.LFActions = string(in.String())
+		case "LFMatch":
+			out.LFMatch = string(in.String())
+		case "Pipeline":
+			out.Pipeline = string(in.String())
+		case "LogicalDataPath":
+			out.LogicalDataPath = string(in.String())
+		case "LFPriority":
+			out.LFPriority = int(in.Int())
+		case "Table":
+			out.Table = int(in.Int())
+		default:
+			in.SkipRecursive()
+		}
+		in.WantComma()
+	}
+	in.Delim('}')
+	if isTopLevel {
+		in.Consumed()
+	}
+}
+func easyjson36bd8e45EncodeGithubComSkydiveProjectSkydiveTopologyProbesOvn3(out *jwriter.Writer, in LFMetadata) {
+	out.RawByte('{')
+	first := true
+	_ = first
+	if in.LFActions != "" {
+		const prefix string = ",\"LFActions\":"
+		first = false
+		out.RawString(prefix[1:])
+		out.String(string(in.LFActions))
+	}
+	if in.LFMatch != "" {
+		const prefix string = ",\"LFMatch\":"
+		if first {
+			first = false
+			out.RawString(prefix[1:])
+		} else {
+			out.RawString(prefix)
+		}
+		out.String(string(in.LFMatch))
+	}
+	if in.Pipeline != "" {
+		const prefix string = ",\"Pipeline\":"
+		if first {
+			first = false
+			out.RawString(prefix[1:])
+		} else {
+			out.RawString(prefix)
+		}
+		out.String(string(in.Pipeline))
+	}
+	if in.LogicalDataPath != "" {
+		const prefix string = ",\"LogicalDataPath\":"
+		if first {
+			first = false
+			out.RawString(prefix[1:])
+		} else {
+			out.RawString(prefix)
+		}
+		out.String(string(in.LogicalDataPath))
+	}
+	{
+		const prefix string = ",\"LFPriority\":"
+		if first {
+			first = false
+			out.RawString(prefix[1:])
+		} else {
+			out.RawString(prefix)
+		}
+		out.Int(int(in.LFPriority))
+	}
+	{
+		const prefix string = ",\"Table\":"
+		out.RawString(prefix)
+		out.Int(int(in.Table))
+	}
+	out.RawByte('}')
+}
+
+// MarshalJSON supports json.Marshaler interface
+func (v LFMetadata) MarshalJSON() ([]byte, error) {
+	w := jwriter.Writer{}
+	easyjson36bd8e45EncodeGithubComSkydiveProjectSkydiveTopologyProbesOvn3(&w, v)
+	return w.Buffer.BuildBytes(), w.Error
+}
+
+// MarshalEasyJSON supports easyjson.Marshaler interface
+func (v LFMetadata) MarshalEasyJSON(w *jwriter.Writer) {
+	easyjson36bd8e45EncodeGithubComSkydiveProjectSkydiveTopologyProbesOvn3(w, v)
+}
+
+// UnmarshalJSON supports json.Unmarshaler interface
+func (v *LFMetadata) UnmarshalJSON(data []byte) error {
+	r := jlexer.Lexer{Data: data}
+	easyjson36bd8e45DecodeGithubComSkydiveProjectSkydiveTopologyProbesOvn3(&r, v)
+	return r.Error()
+}
+
+// UnmarshalEasyJSON supports easyjson.Unmarshaler interface
+func (v *LFMetadata) UnmarshalEasyJSON(l *jlexer.Lexer) {
+	easyjson36bd8e45DecodeGithubComSkydiveProjectSkydiveTopologyProbesOvn3(l, v)
+}
+func easyjson36bd8e45DecodeGithubComSkydiveProjectSkydiveTopologyProbesOvn4(in *jlexer.Lexer, out *DPBMetadata) {
+	isTopLevel := in.IsStart()
+	if in.IsNull() {
+		if isTopLevel {
+			in.Consumed()
+		}
+		in.Skip()
+		return
+	}
+	in.Delim('{')
+	for !in.IsDelim('}') {
+		key := in.UnsafeFieldName(false)
+		in.WantColon()
+		if in.IsNull() {
+			in.Skip()
+			in.WantComma()
+			continue
+		}
+		switch key {
+		case "TunnelKey":
+			out.TunnelKey = int(in.Int())
+		default:
+			in.SkipRecursive()
+		}
+		in.WantComma()
+	}
+	in.Delim('}')
+	if isTopLevel {
+		in.Consumed()
+	}
+}
+func easyjson36bd8e45EncodeGithubComSkydiveProjectSkydiveTopologyProbesOvn4(out *jwriter.Writer, in DPBMetadata) {
+	out.RawByte('{')
+	first := true
+	_ = first
+	if in.TunnelKey != 0 {
+		const prefix string = ",\"TunnelKey\":"
+		first = false
+		out.RawString(prefix[1:])
+		out.Int(int(in.TunnelKey))
+	}
+	out.RawByte('}')
+}
+
+// MarshalJSON supports json.Marshaler interface
+func (v DPBMetadata) MarshalJSON() ([]byte, error) {
+	w := jwriter.Writer{}
+	easyjson36bd8e45EncodeGithubComSkydiveProjectSkydiveTopologyProbesOvn4(&w, v)
+	return w.Buffer.BuildBytes(), w.Error
+}
+
+// MarshalEasyJSON supports easyjson.Marshaler interface
+func (v DPBMetadata) MarshalEasyJSON(w *jwriter.Writer) {
+	easyjson36bd8e45EncodeGithubComSkydiveProjectSkydiveTopologyProbesOvn4(w, v)
+}
+
+// UnmarshalJSON supports json.Unmarshaler interface
+func (v *DPBMetadata) UnmarshalJSON(data []byte) error {
+	r := jlexer.Lexer{Data: data}
+	easyjson36bd8e45DecodeGithubComSkydiveProjectSkydiveTopologyProbesOvn4(&r, v)
+	return r.Error()
+}
+
+// UnmarshalEasyJSON supports easyjson.Unmarshaler interface
+func (v *DPBMetadata) UnmarshalEasyJSON(l *jlexer.Lexer) {
+	easyjson36bd8e45DecodeGithubComSkydiveProjectSkydiveTopologyProbesOvn4(l, v)
+}
+func easyjson36bd8e45DecodeGithubComSkydiveProjectSkydiveTopologyProbesOvn5(in *jlexer.Lexer, out *ACLMetadata) {
 	isTopLevel := in.IsStart()
 	if in.IsNull() {
 		if isTopLevel {
@@ -761,7 +954,7 @@ func easyjson36bd8e45DecodeGithubComSkydiveProjectSkydiveTopologyProbesOvn3(in *
 		in.Consumed()
 	}
 }
-func easyjson36bd8e45EncodeGithubComSkydiveProjectSkydiveTopologyProbesOvn3(out *jwriter.Writer, in ACLMetadata) {
+func easyjson36bd8e45EncodeGithubComSkydiveProjectSkydiveTopologyProbesOvn5(out *jwriter.Writer, in ACLMetadata) {
 	out.RawByte('{')
 	first := true
 	_ = first
@@ -817,23 +1010,23 @@ func easyjson36bd8e45EncodeGithubComSkydiveProjectSkydiveTopologyProbesOvn3(out 
 // MarshalJSON supports json.Marshaler interface
 func (v ACLMetadata) MarshalJSON() ([]byte, error) {
 	w := jwriter.Writer{}
-	easyjson36bd8e45EncodeGithubComSkydiveProjectSkydiveTopologyProbesOvn3(&w, v)
+	easyjson36bd8e45EncodeGithubComSkydiveProjectSkydiveTopologyProbesOvn5(&w, v)
 	return w.Buffer.BuildBytes(), w.Error
 }
 
 // MarshalEasyJSON supports easyjson.Marshaler interface
 func (v ACLMetadata) MarshalEasyJSON(w *jwriter.Writer) {
-	easyjson36bd8e45EncodeGithubComSkydiveProjectSkydiveTopologyProbesOvn3(w, v)
+	easyjson36bd8e45EncodeGithubComSkydiveProjectSkydiveTopologyProbesOvn5(w, v)
 }
 
 // UnmarshalJSON supports json.Unmarshaler interface
 func (v *ACLMetadata) UnmarshalJSON(data []byte) error {
 	r := jlexer.Lexer{Data: data}
-	easyjson36bd8e45DecodeGithubComSkydiveProjectSkydiveTopologyProbesOvn3(&r, v)
+	easyjson36bd8e45DecodeGithubComSkydiveProjectSkydiveTopologyProbesOvn5(&r, v)
 	return r.Error()
 }
 
 // UnmarshalEasyJSON supports easyjson.Unmarshaler interface
 func (v *ACLMetadata) UnmarshalEasyJSON(l *jlexer.Lexer) {
-	easyjson36bd8e45DecodeGithubComSkydiveProjectSkydiveTopologyProbesOvn3(l, v)
+	easyjson36bd8e45DecodeGithubComSkydiveProjectSkydiveTopologyProbesOvn5(l, v)
 }

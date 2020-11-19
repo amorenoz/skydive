@@ -42,28 +42,34 @@ type ovnEvent func()
 // Probe describes an OVN probe
 type Probe struct {
 	graph.ListenerHandler
-	graph         *graph.Graph
-	nbAddress     string
-	sbAddress     string
-	ovnNBapi      goovn.Client
-	ovnSBapi      goovn.Client
-	switchPorts   map[string]*goovn.LogicalSwitch
-	eventChan     chan ovnEvent
-	bundle        *probe.Bundle
-	aclIndexer    *graph.Indexer
-	ifaces        *graph.MetadataIndexer
-	pods          *graph.MetadataIndexer
-	lsIndexer     *graph.Indexer
-	lspIndexer    *graph.Indexer
-	lrIndexer     *graph.Indexer
-	lrpIndexer    *graph.Indexer
-	spLinker      *graph.ResourceLinker
-	srLinker      *graph.MetadataIndexerLinker
-	rpLinker      *graph.ResourceLinker
-	aclLinker     *graph.ResourceLinker
-	podLinker     *graph.ResourceLinker
-	ifaceLinker   *graph.MetadataIndexerLinker
-	lpNameIndexer *graph.MetadataIndexer
+	graph            *graph.Graph
+	nbAddress        string
+	sbAddress        string
+	ovnNBapi         goovn.Client
+	ovnSBapi         goovn.Client
+	switchPorts      map[string]*goovn.LogicalSwitch
+	eventChan        chan ovnEvent
+	bundle           *probe.Bundle
+	aclIndexer       *graph.Indexer
+	ifaces           *graph.MetadataIndexer
+	pods             *graph.MetadataIndexer
+	lsIndexer        *graph.Indexer
+	lspIndexer       *graph.Indexer
+	lrIndexer        *graph.Indexer
+	lrpIndexer       *graph.Indexer
+	dpbIndexer       *graph.Indexer
+	lflowIndexer     *graph.Indexer
+	spLinker         *graph.ResourceLinker
+	srLinker         *graph.MetadataIndexerLinker
+	rpLinker         *graph.ResourceLinker
+	aclLinker        *graph.ResourceLinker
+	podLinker        *graph.ResourceLinker
+	ifaceLinker      *graph.MetadataIndexerLinker
+	lpNameIndexer    *graph.MetadataIndexer
+	lflow2dataLinker *graph.ResourceLinker
+	//lflow2dataLinker *graph.MetadataIndexerLinker
+	lflow2dataIndexer *graph.MetadataIndexer
+	dataNameIndexer   *graph.MetadataIndexer
 }
 
 // Metadata describes the information of an OVN object
@@ -73,6 +79,8 @@ type Metadata struct {
 	LSPMetadata `json:",omitempty"`
 	LRPMetadata `json:",omitempty"`
 	ACLMetadata `json:",omitempty"`
+	DPBMetadata `json:",omitempty"`
+	LFMetadata  `json:",omitempty"`
 
 	ExtID   graph.Metadata `json:",omitempty" field:"Metadata"`
 	Options graph.Metadata `json:",omitempty" field:"Metadata"`
@@ -108,6 +116,25 @@ type ACLMetadata struct {
 	Log       bool   `json:",omitempty"`
 	Match     string `json:",omitempty"`
 	Priority  int64  `json:",omitempty"`
+}
+
+// DPBMetadata describes the information of an OVN DataPathBinding
+// easyjson:json
+// gendecoder
+type DPBMetadata struct {
+	TunnelKey int `json:",omitempty"`
+}
+
+// LFMetadata describes the information of an OVN Logical Flow
+// easyjson:json
+// gendecoder
+type LFMetadata struct {
+	LFActions       string `json:",omitempty"`
+	LFMatch         string `json:",omitempty"`
+	Pipeline        string `json:",omitempty"`
+	LogicalDataPath string `json:",omitempty"`
+	LFPriority      int    `json:""`
+	Table           int    `json:""`
 }
 
 // MetadataDecoder implements a json message raw decoder
@@ -299,6 +326,72 @@ func (l *podLinker) GetBALinks(lsPortNode *graph.Node) (edges []*graph.Edge) {
 	return edges
 }
 
+// lflow2dataLinker  links Logical Flows to their DataPathBindings
+type lflow2dataLinker struct {
+	probe *Probe
+}
+
+// Link a Pod to it's logical switch port
+func (l *lflow2dataLinker) GetABLinks(datapath *graph.Node) (edges []*graph.Edge) {
+	logging.GetLogger().Debugf("lflow2datalinker Node %v", datapath)
+
+	uuid, err := datapath.GetFieldString("Name")
+	if err != nil {
+		return edges
+	}
+	// This does not work but I think it should
+	//lflowNode, _ := l.probe.lflow2dataIndexer.GetNode(uuid)
+	//logging.GetLogger().Debugf("Looking in lflow2data indexer with value %s returns %v", uuid, lflowNode)
+	//logging.GetLogger().Debugf("INDEXER %#v  %v", l.probe.lflow2dataIndexer, l.probe.lflow2dataIndexer)
+	//if lflowNode != nil {
+	//	logging.GetLogger().Debugf("found lfow for datapath %v", lflowNode)
+	//	link, err := topology.NewLink(l.probe.graph, datapath, lflowNode, "ovn-ref", nil)
+	//	if err != nil {
+	//		logging.GetLogger().Error(link)
+	//	}
+	//	edges = append(edges, link)
+	//}
+
+	lflows, _ := l.probe.ovnSBapi.LogicalFlowList()
+	for _, lflow := range lflows {
+		for _, dp := range lflow.LogicalDataPath {
+			if dp != uuid {
+				continue
+			}
+			if lflowNode, _ := l.probe.lflowIndexer.GetNode(lflow.UUID); lflowNode != nil {
+				logging.GetLogger().Debugf("found lfow for datapath %v", lflowNode)
+				link, err := topology.NewLink(l.probe.graph, datapath, lflowNode, "ovn-ref", nil)
+				if err != nil {
+					logging.GetLogger().Error(link)
+				}
+				edges = append(edges, link)
+			}
+		}
+	}
+	return edges
+}
+
+// Link a logical switch port to a Pod
+func (l *lflow2dataLinker) GetBALinks(lflow *graph.Node) (edges []*graph.Edge) {
+	logging.GetLogger().Debugf("lflow2datalinker Node %v", lflow)
+	uuid, err := lflow.GetFieldString("OVN.LogicalDataPath")
+	if err != nil {
+		logging.GetLogger().Debugf("error %v", err)
+		return edges
+	}
+
+	datapath, _ := l.probe.dataNameIndexer.GetNode(uuid)
+	logging.GetLogger().Debugf("Looking in dataNameIndexer indexer with value %s returns %v", uuid, datapath)
+	if datapath != nil {
+		link, err := topology.NewLink(l.probe.graph, lflow, datapath, "ovn-ref", nil)
+		if err != nil {
+			logging.GetLogger().Error(link)
+		}
+		edges = append(edges, link)
+	}
+	return edges
+}
+
 func (p *Probe) registerNode(indexer *graph.Indexer, uuid string, metadata graph.Metadata) {
 	logging.GetLogger().Debugf("Registering OVN object with UUID %s and metadata %+v", uuid, metadata)
 
@@ -472,6 +565,7 @@ func (p *Probe) OnQoSCreate(*goovn.QoS) {
 func (p *Probe) OnQoSDelete(*goovn.QoS) {
 }
 
+// Stub Unused callbacks
 func (p *Probe) OnChassisCreate(ch *goovn.Chassis) {
 }
 func (p *Probe) OnChassisDelete(ch *goovn.Chassis) {
@@ -488,13 +582,57 @@ func (p *Probe) OnEncapCreate(ch *goovn.Encap) {
 }
 func (p *Probe) OnEncapDelete(ch *goovn.Encap) {
 }
+
+// OnLogicalFlowCreate is called when a LogicalFlow is created
 func (p *Probe) OnLogicalFlowCreate(lf *goovn.LogicalFlow) {
+	p.eventChan <- func() { p.registerNode(p.lflowIndexer, lf.UUID, p.logicalFlowMetadata(lf)) }
 }
+
+// OnLogicalFlowDelete is called when a LogicalFlow is deleted
 func (p *Probe) OnLogicalFlowDelete(lf *goovn.LogicalFlow) {
+	p.eventChan <- func() { p.unregisterNode(p.lflowIndexer, lf.UUID) }
 }
+
+// OnDataPathBindingCreate is called when a DataPathBinding is created
 func (p *Probe) OnDataPathBindingCreate(dp *goovn.DataPathBinding) {
+	p.eventChan <- func() { p.registerNode(p.dpbIndexer, dp.UUID, p.dataPathBindingMetadata(dp)) }
 }
+
+// OnDataPathBindingCreate is called when a DataPathBinding is created
 func (p *Probe) OnDataPathBindingDelete(dp *goovn.DataPathBinding) {
+	p.eventChan <- func() { p.unregisterNode(p.dpbIndexer, dp.UUID) }
+}
+
+func (p *Probe) logicalFlowMetadata(lf *goovn.LogicalFlow) graph.Metadata {
+	return graph.Metadata{
+		"Type":    "logical_flow",
+		"Name":    lf.UUID,
+		"Manager": "ovn",
+		"OVN": &Metadata{
+			LFMetadata: LFMetadata{
+				LFActions:       lf.Actions,
+				LFMatch:         lf.Match,
+				Pipeline:        lf.Pipeline,
+				LogicalDataPath: lf.LogicalDataPath[0],
+				LFPriority:      lf.Priority,
+				Table:           lf.Table,
+			},
+			ExtID: graph.NormalizeValue(lf.ExternalID).(map[string]interface{}),
+		},
+	}
+}
+func (p *Probe) dataPathBindingMetadata(dp *goovn.DataPathBinding) graph.Metadata {
+	return graph.Metadata{
+		"Type":    "datapath_binding",
+		"Name":    dp.UUID,
+		"Manager": "ovn",
+		"OVN": &Metadata{
+			DPBMetadata: DPBMetadata{
+				TunnelKey: dp.TunnelKey,
+			},
+			ExtID: graph.NormalizeValue(dp.ExternalID).(map[string]interface{}),
+		},
+	}
 }
 
 func (p *Probe) aclMetadata(acl *goovn.ACL) graph.Metadata {
@@ -625,30 +763,51 @@ func (p *Probe) Do(ctx context.Context, wg *sync.WaitGroup) error {
 		}
 	}
 
+	datapath_bindings, err := p.ovnSBapi.DataPathBindingList()
+	if err != nil {
+		logging.GetLogger().Error(err)
+	}
+	for _, dp := range datapath_bindings {
+		logging.GetLogger().Debugf("DataPathBinding detected %v", dp)
+		p.OnDataPathBindingCreate(dp)
+	}
+
+	lflows, err := p.ovnSBapi.LogicalFlowList()
+	if err != nil {
+		logging.GetLogger().Error(err)
+	}
+	for _, lf := range lflows {
+		logging.GetLogger().Debugf("LogicalFlowdetected %v", lf)
+		p.OnLogicalFlowCreate(lf)
+	}
 	return nil
 }
 
 // NewProbe creates a new graph OVS database probe
 func NewProbe(g *graph.Graph, nbAddress string, sbAddress string) (probe.Handler, error) {
 	p := &Probe{
-		graph:      g,
-		nbAddress:  nbAddress,
-		sbAddress:  sbAddress,
-		eventChan:  make(chan ovnEvent, 50),
-		aclIndexer: graph.NewIndexer(g, nil, uuidHasher, false),
-		lsIndexer:  graph.NewIndexer(g, nil, uuidHasher, false),
-		lspIndexer: graph.NewIndexer(g, nil, uuidHasher, false),
-		lrIndexer:  graph.NewIndexer(g, nil, uuidHasher, false),
-		lrpIndexer: graph.NewIndexer(g, nil, uuidHasher, false),
+		graph:        g,
+		nbAddress:    nbAddress,
+		sbAddress:    sbAddress,
+		eventChan:    make(chan ovnEvent, 50),
+		aclIndexer:   graph.NewIndexer(g, nil, uuidHasher, false),
+		lsIndexer:    graph.NewIndexer(g, nil, uuidHasher, false),
+		lspIndexer:   graph.NewIndexer(g, nil, uuidHasher, false),
+		lrIndexer:    graph.NewIndexer(g, nil, uuidHasher, false),
+		lrpIndexer:   graph.NewIndexer(g, nil, uuidHasher, false),
+		dpbIndexer:   graph.NewIndexer(g, nil, uuidHasher, false),
+		lflowIndexer: graph.NewIndexer(g, nil, uuidHasher, false),
 	}
 
 	p.bundle = &probe.Bundle{
 		Handlers: map[string]probe.Handler{
-			"aclIndexer": p.aclIndexer,
-			"lsIndexer":  p.lsIndexer,
-			"lspIndexer": p.lspIndexer,
-			"lrIndexer":  p.lrIndexer,
-			"lrpIndexer": p.lrpIndexer,
+			"aclIndexer":   p.aclIndexer,
+			"lsIndexer":    p.lsIndexer,
+			"lspIndexer":   p.lspIndexer,
+			"lrIndexer":    p.lrIndexer,
+			"lrpIndexer":   p.lrpIndexer,
+			"dpbIndexer":   p.dpbIndexer,
+			"lflowIndexer": p.lflowIndexer,
 		},
 	}
 
@@ -708,6 +867,19 @@ func NewProbe(g *graph.Graph, nbAddress string, sbAddress string) (probe.Handler
 		&podLinker{probe: p}, graph.Metadata{"RelationType": "mapping"})
 	p.bundle.AddHandler("podLinker", p.podLinker)
 
+	p.lflow2dataIndexer = graph.NewMetadataIndexer(g, p.lflowIndexer, nil, "OVN.LogicalDataPath")
+	p.dataNameIndexer = graph.NewMetadataIndexer(g, p.dpbIndexer, nil, "Name")
+	//Ideally, I think this should work
+	//p.lflow2dataIndexer = graph.NewMetadataIndexer(g, p.lflowIndexer, nil, "OVN.LogicalDataPath")
+	//p.lflow2dataLinker = graph.NewMetadataIndexerLinker(g, p.lflow2dataIndexer, p.dataNameIndexer, graph.Metadata{"RelationType": "mapping"})
+	//However, I doesnt'
+
+	p.lflow2dataLinker = graph.NewResourceLinker(g,
+		[]graph.ListenerHandler{p.dpbIndexer},
+		[]graph.ListenerHandler{p.lflowIndexer},
+		&lflow2dataLinker{probe: p}, graph.Metadata{"RelationType": "mapping"})
+	p.bundle.AddHandler("lflow2dataLinker", p.lflow2dataLinker)
+
 	// Handle linkers errors
 	p.aclLinker.AddEventListener(p)
 	p.rpLinker.AddEventListener(p)
@@ -715,6 +887,7 @@ func NewProbe(g *graph.Graph, nbAddress string, sbAddress string) (probe.Handler
 	p.srLinker.AddEventListener(p)
 	p.ifaceLinker.AddEventListener(p)
 	p.podLinker.AddEventListener(p)
+	p.lflow2dataLinker.AddEventListener(p)
 
 	return probes.NewProbeWrapper(p), nil
 }
