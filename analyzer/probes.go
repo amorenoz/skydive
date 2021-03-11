@@ -39,6 +39,7 @@ import (
 	"github.com/skydive-project/skydive/topology/probes/nsm"
 	"github.com/skydive-project/skydive/topology/probes/opencontrail"
 	"github.com/skydive-project/skydive/topology/probes/ovn"
+	"github.com/skydive-project/skydive/topology/probes/ovnk8s"
 	"github.com/skydive-project/skydive/topology/probes/ovsdb"
 	"github.com/skydive-project/skydive/topology/probes/peering"
 )
@@ -115,6 +116,8 @@ func NewTopologyProbeBundleFromConfig(g *graph.Graph) (*probe.Bundle, error) {
 		case "ovn":
 			addr := config.GetString("analyzer.topology.ovn.address")
 			handler, err = ovn.NewProbe(g, addr)
+		case "ovnk8s":
+			handler, err = ovnk8s.NewProbe(g)
 		case "k8s":
 			handler, err = k8s.NewK8sProbe(g)
 		case "istio":
